@@ -8,6 +8,7 @@ import java.util.Iterator;
 
 import org.apache.log4j.Logger;
 import org.eclipse.core.resources.IFile;
+import org.eclipse.core.resources.IProject;
 import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.IResourceVisitor;
 import org.eclipse.core.runtime.CoreException;
@@ -23,6 +24,8 @@ import org.eclipse.ui.IWorkingSet;
 import net.sourceforge.pmd.eclipse.plugin.PMDPlugin;
 import net.sourceforge.pmd.eclipse.runtime.cmd.AbstractDefaultCommand;
 import net.sourceforge.pmd.eclipse.runtime.cmd.ReviewCodeCmd;
+import net.sourceforge.pmd.eclipse.runtime.cmd.ReviewProjectCmd;
+import net.sourceforge.pmd.eclipse.runtime.properties.PropertiesException;
 import net.sourceforge.pmd.eclipse.ui.model.AbstractPMDRecord;
 import net.sourceforge.pmd.eclipse.ui.nls.StringKeys;
 
@@ -132,7 +135,22 @@ public class PMDCheckAction extends AbstractUIAction {
                 }
             } else if (element instanceof IAdaptable) {
                 IAdaptable adaptable = (IAdaptable) element;
-                addAdaptable(cmd, adaptable);
+                
+                IProject project = adaptable.getAdapter(IProject.class);
+                if (project != null) {
+                    PMDPlugin.getDefault().logInformation("Running pmd check on project " + project.getName());
+                    try {
+                        ReviewProjectCmd cmd2 = new ReviewProjectCmd(project);
+                        cmd2.execute();
+                        return;
+                    } catch (PropertiesException e) {
+                        PMDPlugin.getDefault().logError("Error executing ReviewProjectCmd", e);
+                    }
+                    
+                } else {
+                    addAdaptable(cmd, adaptable);
+                }
+                
             } else {
                 LOG.warn("The selected object is not adaptable");
                 LOG.debug("   -> selected object : " + element);
